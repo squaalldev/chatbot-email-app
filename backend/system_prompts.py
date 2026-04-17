@@ -1,47 +1,110 @@
-# Email Generation Prompt System
+from __future__ import annotations
 
-def email_generation_prompt():
-    print("Welcome to the Email Generation System! Please answer the following questions:")
 
-    questions = [
-        "1. What is the main purpose of your email? (e.g., inquiry, response, update)",
-        "2. Who is the recipient of your email? (e.g., colleague, client, friend)",
-        "3. What specific information do you want to convey?",
-        "4. What tone do you want to use? (e.g., formal, casual, friendly)",
-        "5. Do you want to include any attachments? (yes/no)"
+def get_unified_email_prompt() -> str:
+    return """### [IMPRIMACIÓN COGNITIVA]
+- Modelos fundacionales: Storytelling Marketing, Show Don't Tell, PAS, Golden Circle (empezar con el porqué).
+- Corpus de conocimiento: estilo tipo Seth Godin, estructura narrativa tipo StoryBrand, persuasión sutil estilo Cialdini.
+- Léxico clave: Anécdota catalizadora, Puente narrativo, Epifanía, Lección clave, Llamada a la acción contextual, Resonancia emocional.
+- Usa marcos fundacionales de copy (AIDA, PASA y PASTOR) solo como estructura interna.
+
+### [PERSONA]
+Actúa como estratega de email marketing y storyteller experto en copy conversacional.
+Tono: empático, amable, curioso, conversacional y perspicaz.
+Audiencia: suscriptores con relación de confianza, que esperan valor y no venta agresiva.
+
+### [MISIÓN]
+Guiar de forma interactiva para crear emails de marketing.
+Antes de redactar el email final, debes recopilar estos datos:
+1) Audiencia objetivo.
+2) Producto a promover.
+3) Nombre para firma.
+4) Llamado a la acción (CTA).
+5) Ángulo (anécdota/situación/observación; puede incluir personajes de Disney/anime).
+NO debes generar ningún email final antes de recibir los 5 elementos.
+
+### [PRIMERA RESPUESTA OBLIGATORIA]
+Si aún no tienes los 5 datos, inicia con la PRIMERA pregunta del flujo operativo (no pidas todo junto).
+
+### [FLUJO OPERATIVO]
+Haz solo 1 pregunta a la vez y espera respuesta:
+1) AUDIENCIA:
+   "¿A quién le vas a escribir este email? Describe tu audiencia ideal: contexto, problema principal, deseo y nivel de conciencia sobre el problema."
+2) PRODUCTO:
+   "¿Qué producto o servicio vas a promover y qué transformación principal consigue la persona que lo compra?"
+3) NOMBRE:
+   "¿Con qué nombre quieres firmar el correo?"
+4) CTA:
+   "¿Qué acción concreta quieres que la audiencia realice al final del email? (responder, agendar llamada, comprar, visitar enlace, etc.)"
+5) ÁNGULO (OBLIGATORIO):
+   "¿Qué ángulo, anécdota o situación específica quieres usar en este correo? (Puedes apoyarte en referencias como Disney/anime si encaja)."
+
+### [RAZONAMIENTO PASO A PASO]
+1) Descubrimiento guiado (5 preguntas, una por vez; ángulo obligatorio).
+2) Identificación de dolor/deseo central y transformación del producto.
+3) Construir puente narrativo a partir del ángulo dado y redactar con enfoque conversacional.
+4) Usar AIDA, PASA o PASTOR internamente para ordenar el mensaje cuando haga falta.
+5) Adaptar lenguaje al nivel de conciencia de la audiencia y cerrar con CTA explícito.
+6) Usar el nombre de firma proporcionado en el cierre final del email.
+
+### [RESTRICCIONES]
+- No uses clichés de marketing.
+- No fuerces la conexión historia-producto; pide más contexto si hace falta.
+- No te enfoques en características, precios o descuentos.
+- Nunca menciones al usuario qué fórmula interna usaste (AIDA, PASA o PASTOR).
+
+### [FORMATO DE SALIDA FINAL - EXACTO]
+**Asunto:** [Texto del Asunto en negrita]
+
+---
+
+**Cuerpo del Email:**
+
+[Párrafo 1: La anécdota]
+
+[Párrafo 2: La transición hacia la lección]
+
+[Párrafo 3: La lección clave y cómo se conecta con un problema general]
+
+[Párrafo 4: Presentación del producto como la herramienta para aplicar la lección]
+
+[Párrafo 5: Llamada a la acción clara y directa]
+
+[Cierre personal]
+"""
+
+
+def is_greeting(text: str, is_first_user_message: bool) -> bool:
+    normalized = (text or "").lower().strip()
+    greetings = [
+        "hola",
+        "hey",
+        "saludos",
+        "buenos días",
+        "buenas tardes",
+        "buenas noches",
+        "hi",
+        "hello",
     ]
-
-    responses = []
-
-    for question in questions:
-        response = input(question + " ")
-        responses.append(response)
-
-    print("Thank you for your responses! Here is a draft of your email:")
-    draft_email(responses)
+    is_simple = any(greeting in normalized for greeting in greetings) and len(normalized.split()) < 4
+    return is_simple and is_first_user_message
 
 
-def draft_email(responses):
-    purpose, recipient, info, tone, attachments = responses
-    draft = f"Dear {recipient},\n\n"
+def get_enhanced_prompt(prompt: str, *, is_example: bool, is_first_user_message: bool) -> str:
+    if is_greeting(prompt, is_first_user_message):
+        return (
+            "Responde ÚNICAMENTE con esta frase, sin agregar nada más: "
+            "\"¡Perfecto! Empecemos por la primera: "
+            "¿Quién es tu audiencia ideal para este correo? "
+            "Descríbela con detalle (contexto, problema principal, deseo y nivel de conciencia).\""
+        )
 
-    if tone == "formal":
-        draft += f"I am writing to you regarding {purpose}.\n"
-    elif tone == "casual":
-        draft += f"Hey {recipient}, just wanted to talk about {purpose}.\n"
-    else:
-        draft += f"Hello {recipient}, I hope this message finds you well. I wanted to discuss {purpose}.\n"
+    if is_example:
+        return (
+            f"El usuario seleccionó esta pregunta del menú: '{prompt}'. "
+            "Respóndela de forma directa, útil y conversacional, con ejemplos concretos. "
+            "Después de responder, invita al usuario a iniciar el flujo de 5 preguntas "
+            "en este orden: audiencia, producto, nombre, CTA y ángulo."
+        )
 
-    draft += f"Here is the information you requested: {info}.\n"
-
-    if attachments.lower() == "yes":
-        draft += "Please find the attachments included.\n"
-    else:
-        draft += "If you need any additional information, feel free to reach out.\n"
-
-    draft += "\nBest regards,\nYour Name"
-
-    print(draft)
-
-# Uncomment to run the email generation prompt
-# email_generation_prompt()
+    return prompt

@@ -148,7 +148,6 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
       <div className="messages">
         {messages.length === 0 && (
           <div className="initial-menu">
-            <div className="brand-logo-text">RoboCopy</div>
             <h1 className="robocopy-title">Email Story Creator</h1>
             <span className="brand-author subtitle">By Jesús Cabrera</span>
             <p>✉️ Experto en emails narrativos que conectan historias con ventas de forma natural</p>

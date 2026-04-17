@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
 interface Message {
-  id: string;
   role: 'user' | 'assistant' | 'error';
   content: string;
   avatar: string;

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 interface Message {
+  id: string;
   role: 'user' | 'assistant' | 'error';
   content: string;
   avatar: string;
@@ -139,7 +140,6 @@ const markdownToHtml = (raw: string) => {
   return output.join('');
 };
 
-
 // single source of truth for uid query path (avoid duplicated declarations in merges)
 const withUidPath = (path: string, uid: string) =>
   `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`;
@@ -157,58 +157,6 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const sendingRef = useRef(false);
-
-  const withUid = useMemo(
-    () => (path: string) => `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`,
-    [uid],
-  );
-
-  const loadMessages = async (targetChatId: string) => {
-    const response = await fetch(withUid(`/api/chats/${targetChatId}/messages`));
-    if (!response.ok) {
-      throw new Error('No se pudo cargar el historial');
-    }
-
-    const data: ApiMessage[] = await response.json();
-    if (!sendingRef.current) {
-      setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
-    }
-  };
-
-  const withUid = (path: string) => `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`;
-
-  const loadMessages = async (targetChatId: string) => {
-    const response = await fetch(withUid(`/api/chats/${targetChatId}/messages`));
-    if (!response.ok) {
-      throw new Error('No se pudo cargar el historial');
-    }
-
-    const data: ApiMessage[] = await response.json();
-    setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
-  };
-
-  const withUid = (path: string) => `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`;
-
-  const loadMessages = async (targetChatId: string) => {
-    const response = await fetch(withUid(`/api/chats/${targetChatId}/messages`));
-    if (!response.ok) {
-      throw new Error('No se pudo cargar el historial');
-    }
-
-    const data: ApiMessage[] = await response.json();
-    setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
-  };
-
-  const loadMessages = async (targetChatId: string) => {
-    const response = await fetch(withUidPath(`/api/chats/${targetChatId}/messages`, uid));
-    if (!response.ok) {
-      throw new Error('No se pudo cargar el historial');
-    }
-
-    const data: ApiMessage[] = await response.json();
-    setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
-  };
 
   const loadMessages = async (targetChatId: string) => {
     const response = await fetch(withUidPath(`/api/chats/${targetChatId}/messages`, uid));
@@ -303,7 +251,6 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
       ]);
     } finally {
       setLoading(false);
-      sendingRef.current = false;
     }
   };
 

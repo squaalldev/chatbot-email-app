@@ -195,8 +195,9 @@ body {
 
 .message {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
+  width: 100%;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 .message .content {
@@ -207,17 +208,46 @@ body {
   font-size: 18px;
 }
 
+.message.assistant,
+.message.error {
+  justify-content: flex-start;
+}
+
+.message .content {
+  max-width: 900px;
+  border-radius: 14px;
+  line-height: 1.65;
+  font-size: 16px;
+}
+
+.message.user .avatar {
+  order: 2;
+}
+
+.message.user .content {
+  order: 1;
+  max-width: 72%;
+}
+
+.message.assistant .content,
+.message.error .content {
+  max-width: 86%;
+}
+
 .user-plain {
-  background: rgba(31, 38, 54, 0.96);
-  color: #fff;
-  padding: 12px 14px;
-  border-radius: 12px;
+  background: #efe4c7;
+  color: #2a2a2a;
+  padding: 12px 16px;
+  border-radius: 16px;
   white-space: pre-wrap;
 }
 
 .assistant-markdown {
   color: #f4f6fb;
   white-space: pre-wrap;
+  background: rgba(31, 38, 54, 0.96);
+  padding: 12px 14px;
+  border-radius: 12px;
 }
 
 .assistant-markdown p {

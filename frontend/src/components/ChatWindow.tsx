@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 interface Message {
   role: 'user' | 'assistant' | 'error';
@@ -36,10 +36,47 @@ function toUiMessage(msg: ApiMessage, idx: number): Message {
   };
 }
 
+function formatInline(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={`b-${idx}`}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <em key={`i-${idx}`}>{part.slice(1, -1)}</em>;
+    }
+    return <React.Fragment key={`t-${idx}`}>{part}</React.Fragment>;
+  });
+}
+
+function renderFormattedText(content: string) {
+  return content.split('\n').map((line, idx) => (
+    <p key={`line-${idx}`}>{formatInline(line)}</p>
+  ));
+}
+
 function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const sendingRef = useRef(false);
+
+  const withUid = useMemo(
+    () => (path: string) => `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`,
+    [uid],
+  );
+
+  const loadMessages = async (targetChatId: string) => {
+    const response = await fetch(withUid(`/api/chats/${targetChatId}/messages`));
+    if (!response.ok) {
+      throw new Error('No se pudo cargar el historial');
+    }
+
+    const data: ApiMessage[] = await response.json();
+    if (!sendingRef.current) {
+      setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
+    }
+  };
 
   const withUid = (path: string) => `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`;
 
@@ -55,15 +92,21 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
 
   useEffect(() => {
     if (!chatId) {
-      setMessages([]);
+      if (!sendingRef.current) {
+        setMessages([]);
+      }
       return;
     }
 
+    if (sendingRef.current) return;
+
     loadMessages(chatId).catch((error) => {
       console.error(error);
-      setMessages([]);
+      if (!sendingRef.current) {
+        setMessages([]);
+      }
     });
-  }, [chatId]);
+  }, [chatId, withUid]);
 
   const animateAssistantText = async (messageId: string, fullText: string) => {
     let partial = '';
@@ -84,6 +127,8 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
   };
 
   const sendToCurrentChat = async (content: string, isExample = false) => {
+    sendingRef.current = true;
+    setLoading(true);
     const activeChatId = await onEnsureChat();
 
     const userMessage: Message = {
@@ -94,7 +139,6 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setLoading(true);
 
     try {
       const response = await fetch(withUid(`/api/chats/${activeChatId}/messages`), {
@@ -133,6 +177,7 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
       ]);
     } finally {
       setLoading(false);
+      sendingRef.current = false;
     }
   };
 
@@ -172,9 +217,7 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
             <span className="avatar">{msg.avatar}</span>
             <div className="content">
               {msg.role === 'assistant' ? (
-                <div className="assistant-markdown">
-                  {msg.content}
-                </div>
+                <div className="assistant-markdown">{renderFormattedText(msg.content)}</div>
               ) : (
                 <div className="user-plain">{msg.content}</div>
               )}

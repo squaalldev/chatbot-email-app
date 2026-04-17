@@ -170,6 +170,16 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
   };
 
+  const loadMessages = async (targetChatId: string) => {
+    const response = await fetch(withUidPath(`/api/chats/${targetChatId}/messages`, uid));
+    if (!response.ok) {
+      throw new Error('No se pudo cargar el historial');
+    }
+
+    const data: ApiMessage[] = await response.json();
+    setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
+  };
+
   useEffect(() => {
     if (!chatId || loading) {
       return;

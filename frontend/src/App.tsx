@@ -23,6 +23,7 @@ function App() {
   const uid = useMemo(() => getOrCreateUid(), []);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const fetchWithUid = (path: string, init?: RequestInit) => {
     const separator = path.includes('?') ? '&' : '?';
@@ -65,13 +66,24 @@ function App() {
 
   return (
     <div className="app-container">
-      <div className="sidebar">
-        <ChatHistory
-          chats={chats}
-          currentChatId={currentChatId}
-          onSelectChat={setCurrentChatId}
-          onNewChat={createChat}
-        />
+      <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+        <button
+          className="sidebar-toggle"
+          onClick={() => setSidebarCollapsed((prev) => !prev)}
+          aria-label={sidebarCollapsed ? 'Mostrar menú de chats' : 'Ocultar menú de chats'}
+          title={sidebarCollapsed ? 'Mostrar menú' : 'Ocultar menú'}
+        >
+          {sidebarCollapsed ? '»' : '«'}
+        </button>
+
+        {!sidebarCollapsed && (
+          <ChatHistory
+            chats={chats}
+            currentChatId={currentChatId}
+            onSelectChat={setCurrentChatId}
+            onNewChat={createChat}
+          />
+        )}
       </div>
       <div className="main-content">
         <ChatWindow

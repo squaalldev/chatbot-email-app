@@ -251,7 +251,7 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
   const hasInput = input.trim().length > 0;
 
   const handleSendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
     const content = input;
     setInput('');
     await sendToCurrentChat(content, false);
@@ -369,13 +369,11 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
           placeholder="Escribe aquí tus instrucciones"
-          disabled={loading}
         />
         {hasInput && <span className="input-ready" aria-hidden="true">✓</span>}
         <button
           className={`send-btn ${hasInput ? 'active' : ''}`}
           onClick={handleSendMessage}
-          disabled={loading}
           aria-label="Enviar mensaje"
         >
           ↑

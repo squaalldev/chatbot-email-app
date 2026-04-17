@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 interface Message {
-  id: string;
   role: 'user' | 'assistant' | 'error';
   content: string;
   avatar: string;
@@ -77,6 +76,18 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     if (!sendingRef.current) {
       setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
     }
+  };
+
+  const withUid = (path: string) => `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`;
+
+  const loadMessages = async (targetChatId: string) => {
+    const response = await fetch(withUid(`/api/chats/${targetChatId}/messages`));
+    if (!response.ok) {
+      throw new Error('No se pudo cargar el historial');
+    }
+
+    const data: ApiMessage[] = await response.json();
+    setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
   };
 
   useEffect(() => {

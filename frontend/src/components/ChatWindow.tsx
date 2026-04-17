@@ -150,7 +150,7 @@ function toUiMessage(msg: ApiMessage, idx: number): Message {
     id: `${msg.role}-${idx}-${Date.now()}`,
     role: msg.role,
     content: msg.content,
-    avatar: msg.role === 'user' ? '👤' : '😀',
+    avatar: msg.role === 'user' ? '👤' : '🤖',
   };
 }
 
@@ -233,7 +233,7 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
         id: assistantId,
         role: 'assistant',
         content: '',
-        avatar: '😀',
+        avatar: '🤖',
       };
 
       setMessages((prev) => [...prev, assistantMessage]);

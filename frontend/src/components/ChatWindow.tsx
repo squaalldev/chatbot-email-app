@@ -149,8 +149,8 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
         {messages.length === 0 && (
           <div className="initial-menu">
             <div className="brand-logo-text">RoboCopy</div>
-            <h1>Email Story Creator</h1>
-            <span className="brand-author">By Jesús Cabrera</span>
+            <h1 className="robocopy-title">Email Story Creator</h1>
+            <span className="brand-author subtitle">By Jesús Cabrera</span>
             <p>✉️ Experto en emails narrativos que conectan historias con ventas de forma natural</p>
             <div className="example-buttons">
               <button className="example-btn" onClick={() => sendToCurrentChat(EXAMPLE_PROMPTS[0], true)}>

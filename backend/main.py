@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import uuid
 from pathlib import Path
@@ -112,6 +113,16 @@ def _save_messages(namespace: str, chat_id: str, messages: list[dict]) -> None:
     _write_json(_chat_path(namespace, chat_id), {"messages": messages})
 
 
+def _title_from_prompt(prompt: str) -> str:
+    cleaned = re.sub(r"\s+", " ", (prompt or "").strip())
+    cleaned = re.sub(r"[\n\r\t]+", " ", cleaned)
+    cleaned = re.sub(r"[^\w\sáéíóúÁÉÍÓÚñÑüÜ¿?¡!,:.-]", "", cleaned)
+    words = cleaned.split()
+    if not words:
+        return f"Sesión-{int(time.time())}"
+    return " ".join(words[:7])
+
+
 def _generate_title(client: genai.Client, prompt: str) -> str:
     try:
         result = client.models.generate_content(
@@ -123,9 +134,10 @@ def _generate_title(client: genai.Client, prompt: str) -> str:
             ),
         )
         title = " ".join((result.text or "").strip().replace('"', "").split())
-        return " ".join(title.split()[:6]) or f"Sesión-{int(time.time())}"
+        candidate = " ".join(title.split()[:6])
+        return candidate or _title_from_prompt(prompt)
     except Exception:
-        return f"Sesión-{int(time.time())}"
+        return _title_from_prompt(prompt)
 
 
 
@@ -177,7 +189,7 @@ def create_chat(payload: CreateChatIn, request: Request):
     chat_id = str(int(time.time() * 1000)) + uuid.uuid4().hex[:6]
     index = _load_index(namespace)
     now = time.time()
-    title = payload.title or f"Sesión-{chat_id[-6:]}"
+    title = payload.title or "Nuevo chat"
     index[chat_id] = {"title": title, "updated_at": now}
     _save_index(namespace, index)
     _save_messages(namespace, chat_id, [])
@@ -228,7 +240,8 @@ def send_message(chat_id: str, payload: MessageIn, request: Request):
     messages.append({"role": "assistant", "content": assistant_text})
     _save_messages(namespace, chat_id, messages)
 
-    if not index[chat_id].get("title") or index[chat_id]["title"].startswith("Sesión-"):
+    current_title = (index[chat_id].get("title") or "").strip().lower()
+    if not current_title or current_title.startswith("sesión-") or current_title == "nuevo chat":
         index[chat_id]["title"] = _generate_title(client, payload.content)
     index[chat_id]["updated_at"] = time.time()
     _save_index(namespace, index)

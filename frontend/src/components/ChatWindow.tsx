@@ -255,6 +255,9 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     }
   };
 
+
+  const hasInput = input.trim().length > 0;
+
   const handleSendMessage = async () => {
     if (!input.trim()) return;
     const content = input;
@@ -325,7 +328,13 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
           placeholder="Escribe aquí tus instrucciones"
           disabled={loading}
         />
-        <button onClick={handleSendMessage} disabled={loading} aria-label="Enviar mensaje">
+        {hasInput && <span className="input-ready" aria-hidden="true">✓</span>}
+        <button
+          className={`send-btn ${hasInput ? 'active' : ''}`}
+          onClick={handleSendMessage}
+          disabled={loading}
+          aria-label="Enviar mensaje"
+        >
           ↑
         </button>
       </div>

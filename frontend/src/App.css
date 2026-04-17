@@ -184,35 +184,62 @@ body {
   box-shadow: none;
 }
 
-.message { display: flex; gap: 10px; align-items: flex-start; }
-
-.avatar {
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #0f1727;
-  border: 1px solid #2d3a53;
-  border-radius: 8px;
-  flex-shrink: 0;
+.message {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
 }
 
 .message .content {
   width: 100%;
   max-width: 900px;
-  padding: 14px 18px;
   border-radius: 10px;
-  line-height: 1.6;
+  line-height: 1.65;
   font-size: 18px;
 }
 
-.message.user .content { background: var(--panel-2); color: var(--text); }
+.user-plain {
+  background: rgba(31, 38, 54, 0.96);
+  color: #fff;
+  padding: 14px 18px;
+  border-radius: 12px;
+  white-space: pre-wrap;
+}
+
+.assistant-markdown {
+  color: #f4f6fb;
+  white-space: pre-wrap;
+}
+
+.assistant-markdown p {
+  margin: 0 0 14px;
+}
+
+.assistant-markdown h1,
+.assistant-markdown h2,
+.assistant-markdown h3 {
+  margin: 22px 0 12px;
+  line-height: 1.35;
+}
+
+.assistant-markdown ul,
+.assistant-markdown ol {
+  margin: 0 0 14px 22px;
+}
+
+.assistant-markdown hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  margin: 22px 0;
+}
+
+.message.user .content { padding-right: 0; }
 .message.assistant .content { background: transparent; color: var(--text); padding-left: 0; }
 
 .message.error .content {
   background: rgba(255, 82, 82, 0.15);
   border: 1px solid rgba(255, 82, 82, 0.35);
+  padding: 10px 12px;
 }
 
 .message.loading { color: var(--muted); font-style: italic; margin-left: 40px; }

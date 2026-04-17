@@ -32,7 +32,7 @@ function toUiMessage(msg: ApiMessage, idx: number): Message {
     id: `${msg.role}-${idx}-${Date.now()}`,
     role: msg.role,
     content: msg.content,
-    avatar: msg.role === 'user' ? '👤' : '🤖',
+    avatar: msg.role === 'user' ? '👤' : '😀',
   };
 }
 
@@ -170,7 +170,15 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
         {messages.map((msg) => (
           <div key={msg.id} className={`message ${msg.role}`}>
             <span className="avatar">{msg.avatar}</span>
-            <div className="content">{msg.content}</div>
+            <div className="content">
+              {msg.role === 'assistant' ? (
+                <div className="assistant-markdown">
+                  {msg.content}
+                </div>
+              ) : (
+                <div className="user-plain">{msg.content}</div>
+              )}
+            </div>
           </div>
         ))}
         {loading && <div className="message loading">🤖 Escribiendo...</div>}

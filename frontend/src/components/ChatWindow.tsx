@@ -140,8 +140,6 @@ const markdownToHtml = (raw: string) => {
   return output.join('');
 };
 
-
-// single source of truth for uid query path (avoid duplicated declarations in merges)
 const withUidPath = (path: string, uid: string) =>
   `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`;
 
@@ -170,20 +168,8 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
   };
 
-  const loadMessages = async (targetChatId: string) => {
-    const response = await fetch(withUidPath(`/api/chats/${targetChatId}/messages`, uid));
-    if (!response.ok) {
-      throw new Error('No se pudo cargar el historial');
-    }
-
-    const data: ApiMessage[] = await response.json();
-    setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
-  };
-
   useEffect(() => {
-    if (!chatId || loading) {
-      return;
-    }
+    if (!chatId || loading) return;
 
     loadMessages(chatId).catch((error) => {
       console.error(error);
@@ -209,17 +195,13 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     }
   };
 
-  const sendToCurrentChat = async (
-    content: string,
-    isExample = false,
-    userVisibleContent?: string,
-  ) => {
+  const sendToCurrentChat = async (content: string, isExample = false) => {
     const activeChatId = await onEnsureChat();
 
     const userMessage: Message = {
       id: `${Date.now()}-user`,
       role: 'user',
-      content: userVisibleContent || content,
+      content,
       avatar: '👤',
     };
 
@@ -266,7 +248,6 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     }
   };
 
-
   const hasInput = input.trim().length > 0;
 
   const handleSendMessage = async () => {
@@ -285,7 +266,6 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     });
     return map;
   }, [messages]);
-
 
   const handleCopy = async (messageId: string, text: string) => {
     try {
@@ -326,6 +306,7 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
             </div>
           </div>
         )}
+
         {messages.map((msg) => (
           <div key={msg.id} className={`message ${msg.role}`}>
             <span className="avatar">{msg.avatar}</span>
@@ -369,6 +350,7 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
             </div>
           </div>
         ))}
+
         {loading && <div className="message loading">🤖 Escribiendo...</div>}
       </div>
 

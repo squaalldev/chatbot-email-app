@@ -140,6 +140,7 @@ const markdownToHtml = (raw: string) => {
   return output.join('');
 };
 
+
 // single source of truth for uid query path (avoid duplicated declarations in merges)
 const withUidPath = (path: string, uid: string) =>
   `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`;
@@ -276,6 +277,11 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
       <div className="messages">
         {messages.length === 0 && (
           <div className="initial-menu">
+            <img
+              className="brand-remote-logo"
+              src="https://huggingface.co/spaces/JeCabrera/chatbot_mail/resolve/main/robocopy_logo.png"
+              alt="RoboCopy"
+            />
             <h1 className="robocopy-title">Email Story Creator</h1>
             <span className="brand-author subtitle">By Jesús Cabrera</span>
             <p>✉️ Experto en emails narrativos que conectan historias con ventas de forma natural</p>

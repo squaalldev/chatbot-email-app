@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface Message {
   role: 'user' | 'assistant' | 'error';
@@ -18,14 +18,126 @@ interface Props {
   onEnsureChat: () => Promise<string>;
 }
 
-const EXAMPLE_PROMPTS = [
-  'Ayúdame a definir una audiencia concreta para este correo: dolor principal, deseo y nivel de conciencia.',
-  'Convierte mi producto en una promesa clara de transformación sin listar características aburridas.',
-  'Dame 3 opciones de CTA claras para este email, con baja fricción y orientadas a una sola acción.',
-  'Propón 5 asuntos y 3 ganchos de apertura para aumentar aperturas y clics de este correo.',
+interface ExamplePrompt {
+  label: string;
+  prompt: string;
+}
+
+const EXAMPLE_PROMPTS: ExamplePrompt[] = [
+  {
+    label: 'Definir audiencia 🎯',
+    prompt: 'Ayúdame a definir una audiencia concreta para este correo: dolor principal, deseo y nivel de conciencia.',
+  },
+  {
+    label: 'Propuesta de valor 💎',
+    prompt: 'Convierte mi producto en una promesa clara de transformación sin listar características aburridas.',
+  },
+  {
+    label: 'CTA que convierte 🚀',
+    prompt: 'Dame 3 opciones de CTA claras para este email, con baja fricción y orientadas a una sola acción.',
+  },
+  {
+    label: 'Asunto + gancho ✉️',
+    prompt: 'Propón 5 asuntos y 3 ganchos de apertura para aumentar aperturas y clics de este correo.',
+  },
 ];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const escapeHtml = (text: string) =>
+  text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+const inlineMarkdown = (text: string) => {
+  let html = escapeHtml(text);
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  return html;
+};
+
+const markdownToHtml = (raw: string) => {
+  const lines = raw.split('\n');
+  const output: string[] = [];
+  let inUl = false;
+  let inOl = false;
+
+  const closeLists = () => {
+    if (inUl) {
+      output.push('</ul>');
+      inUl = false;
+    }
+    if (inOl) {
+      output.push('</ol>');
+      inOl = false;
+    }
+  };
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      closeLists();
+      output.push('<br />');
+      return;
+    }
+
+    if (trimmed.startsWith('### ')) {
+      closeLists();
+      output.push(`<h3>${inlineMarkdown(trimmed.slice(4))}</h3>`);
+      return;
+    }
+
+    if (trimmed.startsWith('## ')) {
+      closeLists();
+      output.push(`<h2>${inlineMarkdown(trimmed.slice(3))}</h2>`);
+      return;
+    }
+
+    if (trimmed.startsWith('# ')) {
+      closeLists();
+      output.push(`<h1>${inlineMarkdown(trimmed.slice(2))}</h1>`);
+      return;
+    }
+
+    const ordered = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (ordered) {
+      if (inUl) {
+        output.push('</ul>');
+        inUl = false;
+      }
+      if (!inOl) {
+        output.push('<ol>');
+        inOl = true;
+      }
+      output.push(`<li>${inlineMarkdown(ordered[2])}</li>`);
+      return;
+    }
+
+    const bullet = trimmed.match(/^[-*]\s+(.*)$/);
+    if (bullet) {
+      if (inOl) {
+        output.push('</ol>');
+        inOl = false;
+      }
+      if (!inUl) {
+        output.push('<ul>');
+        inUl = true;
+      }
+      output.push(`<li>${inlineMarkdown(bullet[1])}</li>`);
+      return;
+    }
+
+    closeLists();
+    output.push(`<p>${inlineMarkdown(trimmed)}</p>`);
+  });
+
+  closeLists();
+  return output.join('');
+};
 
 function toUiMessage(msg: ApiMessage, idx: number): Message {
   return {
@@ -34,25 +146,6 @@ function toUiMessage(msg: ApiMessage, idx: number): Message {
     content: msg.content,
     avatar: msg.role === 'user' ? '👤' : '😀',
   };
-}
-
-function formatInline(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean);
-  return parts.map((part, idx) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={`b-${idx}`}>{part.slice(2, -2)}</strong>;
-    }
-    if (part.startsWith('*') && part.endsWith('*')) {
-      return <em key={`i-${idx}`}>{part.slice(1, -1)}</em>;
-    }
-    return <React.Fragment key={`t-${idx}`}>{part}</React.Fragment>;
-  });
-}
-
-function renderFormattedText(content: string) {
-  return content.split('\n').map((line, idx) => (
-    <p key={`line-${idx}`}>{formatInline(line)}</p>
-  ));
 }
 
 function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
@@ -90,23 +183,28 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
   };
 
+  const withUid = (path: string) => `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`;
+
+  const loadMessages = async (targetChatId: string) => {
+    const response = await fetch(withUid(`/api/chats/${targetChatId}/messages`));
+    if (!response.ok) {
+      throw new Error('No se pudo cargar el historial');
+    }
+
+    const data: ApiMessage[] = await response.json();
+    setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
+  };
+
   useEffect(() => {
-    if (!chatId) {
-      if (!sendingRef.current) {
-        setMessages([]);
-      }
+    if (!chatId || loading) {
       return;
     }
 
-    if (sendingRef.current) return;
-
     loadMessages(chatId).catch((error) => {
       console.error(error);
-      if (!sendingRef.current) {
-        setMessages([]);
-      }
+      setMessages([]);
     });
-  }, [chatId, withUid]);
+  }, [chatId, loading]);
 
   const animateAssistantText = async (messageId: string, fullText: string) => {
     let partial = '';
@@ -126,19 +224,22 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     }
   };
 
-  const sendToCurrentChat = async (content: string, isExample = false) => {
-    sendingRef.current = true;
-    setLoading(true);
+  const sendToCurrentChat = async (
+    content: string,
+    isExample = false,
+    userVisibleContent?: string,
+  ) => {
     const activeChatId = await onEnsureChat();
 
     const userMessage: Message = {
       id: `${Date.now()}-user`,
       role: 'user',
-      content,
+      content: userVisibleContent || content,
       avatar: '👤',
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    setLoading(true);
 
     try {
       const response = await fetch(withUid(`/api/chats/${activeChatId}/messages`), {
@@ -188,6 +289,16 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     await sendToCurrentChat(content, false);
   };
 
+  const assistantHtmlById = useMemo(() => {
+    const map = new Map<string, string>();
+    messages.forEach((message) => {
+      if (message.role === 'assistant') {
+        map.set(message.id, markdownToHtml(message.content));
+      }
+    });
+    return map;
+  }, [messages]);
+
   return (
     <div className="chat-window">
       <div className="messages">
@@ -197,18 +308,15 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
             <span className="brand-author subtitle">By Jesús Cabrera</span>
             <p>✉️ Experto en emails narrativos que conectan historias con ventas de forma natural</p>
             <div className="example-buttons">
-              <button className="example-btn" onClick={() => sendToCurrentChat(EXAMPLE_PROMPTS[0], true)}>
-                Definir audiencia 🎯
-              </button>
-              <button className="example-btn" onClick={() => sendToCurrentChat(EXAMPLE_PROMPTS[1], true)}>
-                Propuesta de valor 💎
-              </button>
-              <button className="example-btn" onClick={() => sendToCurrentChat(EXAMPLE_PROMPTS[2], true)}>
-                CTA que convierte 🚀
-              </button>
-              <button className="example-btn" onClick={() => sendToCurrentChat(EXAMPLE_PROMPTS[3], true)}>
-                Asunto + gancho ✉️
-              </button>
+              {EXAMPLE_PROMPTS.map((example) => (
+                <button
+                  key={example.label}
+                  className="example-btn"
+                  onClick={() => sendToCurrentChat(example.prompt, true, example.label)}
+                >
+                  {example.label}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -217,7 +325,10 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
             <span className="avatar">{msg.avatar}</span>
             <div className="content">
               {msg.role === 'assistant' ? (
-                <div className="assistant-markdown">{renderFormattedText(msg.content)}</div>
+                <div
+                  className="assistant-markdown"
+                  dangerouslySetInnerHTML={{ __html: assistantHtmlById.get(msg.id) || '' }}
+                />
               ) : (
                 <div className="user-plain">{msg.content}</div>
               )}

@@ -1,34 +1,23 @@
-# Dockerfile
+# ---------- Frontend build ----------
+FROM node:20-bookworm-slim AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm install
+COPY frontend .
+RUN npm run build
 
-# Base image to use
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8
-
-# Set the working directory to /app
+# ---------- Backend runtime ----------
+FROM python:3.11-slim
 WORKDIR /app
 
-# Copy the backend application files
-COPY ./backend /app/backend
-
-# Copy the frontend application files
-COPY ./frontend /app/frontend
-
-# Install dependencies for the backend
+COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
-# Set the environment variables for FastAPI
-ENV MODULE_NAME=backend.main:app
+COPY backend /app/backend
+COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
-# Expose port 80 for the FastAPI app
-EXPOSE 80
+# Hugging Face Spaces expone PORT (fallback 7860)
+ENV PORT=7860
+EXPOSE 7860
 
-# Install Node.js for frontend
-RUN apt-get update && apt-get install -y nodejs npm
-
-# Build the React frontend
-RUN cd frontend && npm install && npm run build
-
-# Serve the React app
-RUN cp -R frontend/build /app/frontend/build
-
-# Start the FastAPI app
-CMD uvicorn backend.main:app --host 0.0.0.0 --port 80 --reload
+CMD sh -c "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}"

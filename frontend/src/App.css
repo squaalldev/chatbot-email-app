@@ -186,6 +186,9 @@ body {
   font-size: 16px;
   margin-bottom: 24px;
 }
+.initial-menu h1 { color: var(--brand); font-size: 44px; font-weight: 700; }
+.brand-author { font-size: 30px; margin-bottom: 10px; }
+.initial-menu p { color: var(--text); font-size: 16px; margin-bottom: 24px; }
 
 .example-buttons {
   display: grid;
@@ -227,8 +230,12 @@ body {
   gap: 8px;
 }
 
-.message.user {
-  justify-content: flex-end;
+.message .content {
+  width: 100%;
+  max-width: 900px;
+  border-radius: 10px;
+  line-height: 1.65;
+  font-size: 18px;
 }
 
 .message.assistant,

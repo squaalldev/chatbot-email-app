@@ -290,7 +290,7 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
                 <button
                   key={example.label}
                   className="example-btn"
-                  onClick={() => sendToCurrentChat(example.prompt, true, example.label)}
+                  onClick={() => sendToCurrentChat(example.prompt, true)}
                 >
                   {example.label}
                 </button>

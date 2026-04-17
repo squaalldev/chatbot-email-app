@@ -21,7 +21,7 @@ from backend.system_prompts import get_enhanced_prompt, get_unified_email_prompt
 
 load_dotenv()
 
-DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 DATA_DIR = Path(os.environ.get("APP_DATA_DIR", "backend/data"))
 FRONTEND_DIST = Path("frontend/dist")

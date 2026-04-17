@@ -1,3 +1,12 @@
+---
+license: apache-2.0
+title: Chatbot Email App
+sdk: docker
+emoji: ⚡
+colorFrom: green
+colorTo: red
+short_description: Write emails with Gemini
+---
 # Chatbot Email App - React + FastAPI
 
 Aplicación de chat para generar emails narrativos con Gemini.

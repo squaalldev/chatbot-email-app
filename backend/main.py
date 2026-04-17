@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
+from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -17,7 +18,10 @@ from pydantic import BaseModel, Field
 
 from backend.system_prompts import get_enhanced_prompt, get_unified_email_prompt
 
+load_dotenv()
+
 DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 DATA_DIR = Path(os.environ.get("APP_DATA_DIR", "backend/data"))
 FRONTEND_DIST = Path("frontend/dist")
 
@@ -124,6 +128,26 @@ def _generate_title(client: genai.Client, prompt: str) -> str:
         return f"Sesión-{int(time.time())}"
 
 
+
+
+def _initialize_model(api_key: str | None = None) -> genai.Client:
+    resolved_api_key = api_key or GOOGLE_API_KEY
+    if not resolved_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "GOOGLE_API_KEY no está configurada. En Hugging Face Spaces agrega este valor en Settings > Secrets."
+            ),
+        )
+
+    try:
+        return genai.Client(api_key=resolved_api_key)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"No se pudo inicializar Gemini con GOOGLE_API_KEY: {exc}",
+        ) from exc
+
 def _build_contents(messages: list[dict]) -> list[types.Content]:
     contents: list[types.Content] = []
     for msg in messages:
@@ -172,15 +196,6 @@ def get_messages(chat_id: str, request: Request):
 
 @app.post("/api/chats/{chat_id}/messages", response_model=ChatMessageResponse)
 def send_message(chat_id: str, payload: MessageIn, request: Request):
-    api_key = os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "GOOGLE_API_KEY no está configurada. En Hugging Face Spaces agrega este valor en Settings > Secrets."
-            ),
-        )
-
     namespace = _namespace(request)
     index = _load_index(namespace)
     if chat_id not in index:
@@ -190,7 +205,7 @@ def send_message(chat_id: str, payload: MessageIn, request: Request):
     user_message = {"role": "user", "content": payload.content}
     messages.append(user_message)
 
-    client = genai.Client(api_key=api_key)
+    client = _initialize_model()
     first_user_message = len([m for m in messages if m["role"] == "user"]) == 1
     enhanced_prompt = get_enhanced_prompt(
         payload.content,

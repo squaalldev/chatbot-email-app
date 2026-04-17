@@ -13,7 +13,9 @@ interface ApiMessage {
 
 interface Props {
   chatId: string | null;
+  uid: string;
   onRefreshChats: () => Promise<void>;
+  onEnsureChat: () => Promise<string>;
 }
 
 const EXAMPLE_PROMPTS = [
@@ -23,27 +25,32 @@ const EXAMPLE_PROMPTS = [
   'Propón 5 asuntos y 3 ganchos de apertura para aumentar aperturas y clics de este correo.',
 ];
 
-function toUiMessage(msg: ApiMessage): Message {
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function toUiMessage(msg: ApiMessage, idx: number): Message {
   return {
+    id: `${msg.role}-${idx}-${Date.now()}`,
     role: msg.role,
     content: msg.content,
     avatar: msg.role === 'user' ? '👤' : '🤖',
   };
 }
 
-function ChatWindow({ chatId, onRefreshChats }: Props) {
+function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const withUid = (path: string) => `${path}${path.includes('?') ? '&' : '?'}uid=${encodeURIComponent(uid)}`;
+
   const loadMessages = async (targetChatId: string) => {
-    const response = await fetch(`/api/chats/${targetChatId}/messages`);
+    const response = await fetch(withUid(`/api/chats/${targetChatId}/messages`));
     if (!response.ok) {
       throw new Error('No se pudo cargar el historial');
     }
 
     const data: ApiMessage[] = await response.json();
-    setMessages(data.map(toUiMessage));
+    setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
   };
 
   useEffect(() => {
@@ -58,10 +65,29 @@ function ChatWindow({ chatId, onRefreshChats }: Props) {
     });
   }, [chatId]);
 
+  const animateAssistantText = async (messageId: string, fullText: string) => {
+    let partial = '';
+    for (const char of fullText) {
+      partial += char;
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                content: partial,
+              }
+            : msg,
+        ),
+      );
+      await sleep(8);
+    }
+  };
+
   const sendToCurrentChat = async (content: string, isExample = false) => {
-    if (!chatId) return;
+    const activeChatId = await onEnsureChat();
 
     const userMessage: Message = {
+      id: `${Date.now()}-user`,
       role: 'user',
       content,
       avatar: '👤',
@@ -71,7 +97,7 @@ function ChatWindow({ chatId, onRefreshChats }: Props) {
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/chats/${chatId}/messages`, {
+      const response = await fetch(withUid(`/api/chats/${activeChatId}/messages`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, is_example: isExample }),
@@ -83,19 +109,23 @@ function ChatWindow({ chatId, onRefreshChats }: Props) {
       }
 
       const data = await response.json();
+      const assistantId = `${Date.now()}-assistant`;
       const assistantMessage: Message = {
+        id: assistantId,
         role: 'assistant',
-        content: data.response,
-        avatar: '🤖',
+        content: '',
+        avatar: '😀',
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      await animateAssistantText(assistantId, data.response ?? '');
       await onRefreshChats();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error enviando mensaje';
       setMessages((prev) => [
         ...prev,
         {
+          id: `${Date.now()}-error`,
           role: 'error',
           content: msg,
           avatar: '⚠️',
@@ -118,8 +148,10 @@ function ChatWindow({ chatId, onRefreshChats }: Props) {
       <div className="messages">
         {messages.length === 0 && (
           <div className="initial-menu">
+            <div className="brand-logo-text">RoboCopy</div>
             <h1>Email Story Creator</h1>
-            <p>✉️ Experto en emails narrativos que conectan historias con ventas</p>
+            <span className="brand-author">By Jesús Cabrera</span>
+            <p>✉️ Experto en emails narrativos que conectan historias con ventas de forma natural</p>
             <div className="example-buttons">
               <button className="example-btn" onClick={() => sendToCurrentChat(EXAMPLE_PROMPTS[0], true)}>
                 Definir audiencia 🎯
@@ -136,8 +168,8 @@ function ChatWindow({ chatId, onRefreshChats }: Props) {
             </div>
           </div>
         )}
-        {messages.map((msg, idx) => (
-          <div key={`${msg.role}-${idx}-${msg.content.slice(0, 20)}`} className={`message ${msg.role}`}>
+        {messages.map((msg) => (
+          <div key={msg.id} className={`message ${msg.role}`}>
             <span className="avatar">{msg.avatar}</span>
             <div className="content">{msg.content}</div>
           </div>
@@ -151,11 +183,11 @@ function ChatWindow({ chatId, onRefreshChats }: Props) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-          placeholder={chatId ? 'Escribe aquí tus instrucciones' : 'Crea un chat con “+ Nuevo chat”'}
-          disabled={loading || !chatId}
+          placeholder="Escribe aquí tus instrucciones"
+          disabled={loading}
         />
-        <button onClick={handleSendMessage} disabled={loading || !chatId}>
-          Enviar
+        <button onClick={handleSendMessage} disabled={loading} aria-label="Enviar mensaje">
+          ↑
         </button>
       </div>
     </div>

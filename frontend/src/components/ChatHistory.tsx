@@ -11,9 +11,11 @@ interface Props {
 function ChatHistory({ chats, currentChatId, onSelectChat, onNewChat }: Props) {
   return (
     <div className="chat-history">
+      <h2 className="sidebar-title">Chats Anteriores</h2>
       <button className="new-chat-btn" onClick={onNewChat}>
         ＋ Nuevo chat
       </button>
+      <p className="sidebar-subtitle">Sesiones</p>
       <div className="chat-list">
         {chats.map((chat) => (
           <div

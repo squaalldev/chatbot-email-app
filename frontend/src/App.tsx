@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import ChatWindow from './components/ChatWindow';
 import ChatHistory from './components/ChatHistory';
@@ -9,12 +9,28 @@ export interface ChatSummary {
   updated_at: number;
 }
 
+const USER_STORAGE_KEY = 'chatbot_uid';
+
+function getOrCreateUid() {
+  const existing = localStorage.getItem(USER_STORAGE_KEY);
+  if (existing) return existing;
+  const generated = crypto.randomUUID();
+  localStorage.setItem(USER_STORAGE_KEY, generated);
+  return generated;
+}
+
 function App() {
+  const uid = useMemo(() => getOrCreateUid(), []);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [chats, setChats] = useState<ChatSummary[]>([]);
 
+  const fetchWithUid = (path: string, init?: RequestInit) => {
+    const separator = path.includes('?') ? '&' : '?';
+    return fetch(`${path}${separator}uid=${encodeURIComponent(uid)}`, init);
+  };
+
   const fetchChats = async () => {
-    const response = await fetch('/api/chats');
+    const response = await fetchWithUid('/api/chats');
     if (!response.ok) {
       throw new Error('No se pudieron cargar los chats');
     }
@@ -29,8 +45,8 @@ function App() {
     fetchChats().catch(console.error);
   }, []);
 
-  const handleNewChat = async () => {
-    const response = await fetch('/api/chats', {
+  const createChat = async () => {
+    const response = await fetchWithUid('/api/chats', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -42,6 +58,12 @@ function App() {
     const created: ChatSummary = await response.json();
     await fetchChats();
     setCurrentChatId(created.chat_id);
+    return created.chat_id;
+  };
+
+  const ensureChat = async () => {
+    if (currentChatId) return currentChatId;
+    return createChat();
   };
 
   return (
@@ -51,11 +73,16 @@ function App() {
           chats={chats}
           currentChatId={currentChatId}
           onSelectChat={setCurrentChatId}
-          onNewChat={handleNewChat}
+          onNewChat={createChat}
         />
       </div>
       <div className="main-content">
-        <ChatWindow chatId={currentChatId} onRefreshChats={fetchChats} />
+        <ChatWindow
+          chatId={currentChatId}
+          uid={uid}
+          onRefreshChats={fetchChats}
+          onEnsureChat={ensureChat}
+        />
       </div>
     </div>
   );

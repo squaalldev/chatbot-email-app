@@ -1,4 +1,4 @@
-# Chatbot Email App - React + FastAPI
+# Chatbot Email App - React + FastAPI 2
 
 Una aplicación moderna de chatbot para generar copies de correos con IA usando Gemini API.
 

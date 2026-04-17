@@ -277,7 +277,15 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
   };
 
   const handleFeedback = (messageId: string, type: 'up' | 'down') => {
-    setFeedbackByMessage((prev) => ({ ...prev, [messageId]: type }));
+    setFeedbackByMessage((prev) => {
+      const current = prev[messageId];
+      if (current === type) {
+        const next = { ...prev };
+        delete next[messageId];
+        return next;
+      }
+      return { ...prev, [messageId]: type };
+    });
   };
 
   return (

@@ -235,8 +235,8 @@ body {
 }
 
 .user-plain {
-  background: #4ecdc4;
-  color: #0f2230;
+  background: rgba(78, 205, 196, 0.26);
+  color: #dffaf7;
   padding: 12px 16px;
   border-radius: 16px;
   white-space: pre-wrap;

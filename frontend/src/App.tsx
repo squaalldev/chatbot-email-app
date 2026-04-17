@@ -36,9 +36,6 @@ function App() {
     }
     const data: ChatSummary[] = await response.json();
     setChats(data);
-    if (!currentChatId && data.length > 0) {
-      setCurrentChatId(data[0].chat_id);
-    }
   };
 
   useEffect(() => {

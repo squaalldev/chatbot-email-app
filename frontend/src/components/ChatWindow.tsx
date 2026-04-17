@@ -158,6 +158,17 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [feedbackByMessage, setFeedbackByMessage] = useState<Record<string, 'up' | 'down'>>({});
+
+  const loadMessages = async (targetChatId: string) => {
+    const response = await fetch(withUidPath(`/api/chats/${targetChatId}/messages`, uid));
+    if (!response.ok) {
+      throw new Error('No se pudo cargar el historial');
+    }
+
+    const data: ApiMessage[] = await response.json();
+    setMessages(data.map((msg, idx) => toUiMessage(msg, idx)));
+  };
 
   const loadMessages = async (targetChatId: string) => {
     const response = await fetch(withUidPath(`/api/chats/${targetChatId}/messages`, uid));
@@ -275,6 +286,20 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     return map;
   }, [messages]);
 
+
+  const handleCopy = async (messageId: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setFeedbackByMessage((prev) => ({ ...prev, [messageId]: prev[messageId] || 'up' }));
+    } catch (error) {
+      console.error('No se pudo copiar:', error);
+    }
+  };
+
+  const handleFeedback = (messageId: string, type: 'up' | 'down') => {
+    setFeedbackByMessage((prev) => ({ ...prev, [messageId]: type }));
+  };
+
   return (
     <div className="chat-window">
       <div className="messages">
@@ -306,10 +331,38 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
             <span className="avatar">{msg.avatar}</span>
             <div className="content">
               {msg.role === 'assistant' ? (
-                <div
-                  className="assistant-markdown"
-                  dangerouslySetInnerHTML={{ __html: assistantHtmlById.get(msg.id) || '' }}
-                />
+                <>
+                  <div
+                    className="assistant-markdown"
+                    dangerouslySetInnerHTML={{ __html: assistantHtmlById.get(msg.id) || '' }}
+                  />
+                  <div className="assistant-actions">
+                    <button
+                      className="action-btn"
+                      onClick={() => handleCopy(msg.id, msg.content)}
+                      aria-label="Copiar respuesta"
+                      title="Copiar"
+                    >
+                      ⧉
+                    </button>
+                    <button
+                      className={`action-btn ${feedbackByMessage[msg.id] === 'up' ? 'active' : ''}`}
+                      onClick={() => handleFeedback(msg.id, 'up')}
+                      aria-label="Respuesta útil"
+                      title="Bien"
+                    >
+                      👍
+                    </button>
+                    <button
+                      className={`action-btn ${feedbackByMessage[msg.id] === 'down' ? 'active' : ''}`}
+                      onClick={() => handleFeedback(msg.id, 'down')}
+                      aria-label="Respuesta no útil"
+                      title="Mal"
+                    >
+                      👎
+                    </button>
+                  </div>
+                </>
               ) : (
                 <div className="user-plain">{msg.content}</div>
               )}

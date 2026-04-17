@@ -235,8 +235,8 @@ body {
 }
 
 .user-plain {
-  background: #efe4c7;
-  color: #2a2a2a;
+  background: #4ecdc4;
+  color: #0f2230;
   padding: 12px 16px;
   border-radius: 16px;
   white-space: pre-wrap;
@@ -279,6 +279,36 @@ body {
   background: rgba(255, 82, 82, 0.15);
   border: 1px solid rgba(255, 82, 82, 0.35);
   padding: 10px 12px;
+}
+
+.assistant-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  color: #d6ddeb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.action-btn.active {
+  background: rgba(78, 205, 196, 0.24);
+  border-color: #4ecdc4;
+  color: #4ecdc4;
 }
 
 .message.loading { color: var(--muted); font-style: italic; margin-left: 40px; }

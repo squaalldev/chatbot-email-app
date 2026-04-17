@@ -1,23 +1,28 @@
 import React from 'react';
+import type { ChatSummary } from '../App';
 
-function ChatHistory({ chats, currentChatId, onSelectChat, onNewChat }: any) {
+interface Props {
+  chats: ChatSummary[];
+  currentChatId: string | null;
+  onSelectChat: (chatId: string) => void;
+  onNewChat: () => void;
+}
+
+function ChatHistory({ chats, currentChatId, onSelectChat, onNewChat }: Props) {
   return (
     <div className="chat-history">
       <button className="new-chat-btn" onClick={onNewChat}>
         ＋ Nuevo chat
       </button>
       <div className="chat-list">
-        {Object.entries(chats).map(([chatId, messages]: any) => (
+        {chats.map((chat) => (
           <div
-            key={chatId}
-            className={`chat-item ${chatId === currentChatId ? 'active' : ''}`}
-            onClick={() => onSelectChat(chatId)}
+            key={chat.chat_id}
+            className={`chat-item ${chat.chat_id === currentChatId ? 'active' : ''}`}
+            onClick={() => onSelectChat(chat.chat_id)}
           >
-            {chatId === currentChatId ? '● ' : ''}
-            {messages && messages.length > 0 
-              ? messages[0].content.substring(0, 30) + '...'
-              : `Chat ${chatId}`
-            }
+            {chat.chat_id === currentChatId ? '● ' : ''}
+            {chat.title}
           </div>
         ))}
       </div>

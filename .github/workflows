@@ -1,0 +1,17 @@
+name: Sincronizar con Hugging Face
+on:
+  push:
+    branches: [main]
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true # Importante si usas archivos grandes
+      - name: Subir a Hugging Face
+        run: git push --force https://tu_usuario:$HF_TOKEN@huggingface.co/spaces/tu_usuario/nombre_del_space main
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}

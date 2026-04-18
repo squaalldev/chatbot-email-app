@@ -17,6 +17,7 @@ interface Props {
   uid: string;
   onRefreshChats: () => Promise<void>;
   onEnsureChat: () => Promise<string>;
+  onError: (error: string | null) => void;
 }
 
 interface ExamplePrompt {
@@ -152,11 +153,12 @@ function toUiMessage(msg: ApiMessage, idx: number): Message {
   };
 }
 
-function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
+function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat, onError }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [feedbackByMessage, setFeedbackByMessage] = useState<Record<string, 'up' | 'down'>>({});
+  const [chatError, setChatError] = useState<string | null>(null);
 
   const loadMessages = async (targetChatId: string) => {
     const response = await fetch(withUidPath(`/api/chats/${targetChatId}/messages`, uid));
@@ -172,10 +174,11 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     if (!chatId || loading) return;
 
     loadMessages(chatId).catch((error) => {
-      console.error(error);
-      setMessages([]);
+      const message = error instanceof Error ? error.message : 'No se pudo cargar el historial';
+      setChatError(message);
+      onError(message);
     });
-  }, [chatId, loading]);
+  }, [chatId, loading, onError]);
 
   const animateAssistantText = async (messageId: string, fullText: string) => {
     let partial = '';
@@ -207,6 +210,7 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
 
     setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
+    setChatError(null);
 
     try {
       const response = await fetch(withUidPath(`/api/chats/${activeChatId}/messages`, uid), {
@@ -234,6 +238,8 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
       await onRefreshChats();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error enviando mensaje';
+      setChatError(msg);
+      onError(msg);
       setMessages((prev) => [
         ...prev,
         {
@@ -255,6 +261,11 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
     const content = input;
     setInput('');
     await sendToCurrentChat(content, false);
+  };
+
+  const dismissChatError = () => {
+    setChatError(null);
+    onError(null);
   };
 
   const assistantHtmlById = useMemo(() => {
@@ -291,6 +302,18 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
   return (
     <div className="chat-window">
       <div className="messages">
+        {chatError && (
+          <div className="chat-error-banner" role="alert">
+            <strong>Error:</strong> {chatError}
+            <button
+              className="chat-error-close"
+              onClick={dismissChatError}
+              aria-label="Cerrar error del chat"
+            >
+              ×
+            </button>
+          </div>
+        )}
         {messages.length === 0 && (
           <div className="initial-menu">
             <img
@@ -353,7 +376,7 @@ function ChatWindow({ chatId, uid, onRefreshChats, onEnsureChat }: Props) {
                   </div>
                 </>
               ) : (
-                <div className="user-plain">{msg.content}</div>
+                <div className={msg.role === 'error' ? 'error-plain' : 'user-plain'}>{msg.content}</div>
               )}
             </div>
           </div>

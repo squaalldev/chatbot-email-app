@@ -24,16 +24,30 @@ function App() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [appError, setAppError] = useState<string | null>(null);
 
   const fetchWithUid = (path: string, init?: RequestInit) => {
     const separator = path.includes('?') ? '&' : '?';
     return fetch(`${path}${separator}uid=${encodeURIComponent(uid)}`, init);
   };
 
+  const getResponseError = async (response: Response, fallback: string) => {
+    const body = await response.json().catch(() => null);
+    if (body && typeof body.detail === 'string' && body.detail.trim()) {
+      return body.detail;
+    }
+    if (body && typeof body.message === 'string' && body.message.trim()) {
+      return body.message;
+    }
+    return fallback;
+  };
+
   const fetchChats = async () => {
     const response = await fetchWithUid('/api/chats');
     if (!response.ok) {
-      throw new Error('No se pudieron cargar los chats');
+      const errorMessage = await getResponseError(response, 'No se pudieron cargar los chats');
+      setAppError(errorMessage);
+      throw new Error(errorMessage);
     }
     const data: ChatSummary[] = await response.json();
     setChats(data);
@@ -50,7 +64,9 @@ function App() {
       body: JSON.stringify({}),
     });
     if (!response.ok) {
-      throw new Error('No se pudo crear el chat');
+      const errorMessage = await getResponseError(response, 'No se pudo crear el chat');
+      setAppError(errorMessage);
+      throw new Error(errorMessage);
     }
 
     const created: ChatSummary = await response.json();
@@ -66,6 +82,19 @@ function App() {
 
   return (
     <div className="app-container">
+      {appError && (
+        <div className="app-error-banner" role="alert">
+          <div className="app-error-title">Error</div>
+          <div>{appError}</div>
+          <button
+            className="app-error-close"
+            onClick={() => setAppError(null)}
+            aria-label="Cerrar mensaje de error"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <button
           className="sidebar-toggle"
@@ -91,6 +120,7 @@ function App() {
           uid={uid}
           onRefreshChats={fetchChats}
           onEnsureChat={ensureChat}
+          onError={setAppError}
         />
       </div>
     </div>
